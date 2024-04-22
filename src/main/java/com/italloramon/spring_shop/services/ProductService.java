@@ -3,12 +3,16 @@ package com.italloramon.spring_shop.services;
 import com.italloramon.spring_shop.dto.ProductDTO;
 import com.italloramon.spring_shop.entities.Product;
 import com.italloramon.spring_shop.repositories.ProductRepository;
+import com.italloramon.spring_shop.services.exceptions.DatabaseException;
 import com.italloramon.spring_shop.services.exceptions.ResourceNotFoundException;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -39,11 +43,15 @@ public class ProductService {
 
     @Transactional()
     public ProductDTO update(Long id, ProductDTO dto) {
-        Product entity = repository.getReferenceById(id);
-        
-        copyDtoToEntity(dto, entity);
+        try {
+            Product entity = repository.getReferenceById(id);
 
-        return new ProductDTO(repository.save(entity));
+            copyDtoToEntity(dto, entity);
+
+            return new ProductDTO(repository.save(entity));
+        } catch (EntityNotFoundException e) {
+            throw new ResourceNotFoundException("Resource Not Found");
+        }
     }
 
     private void copyDtoToEntity(ProductDTO dto, Product entity) {
@@ -53,8 +61,15 @@ public class ProductService {
         entity.setImgUrl(dto.getImgUrl());
     }
 
-    @Transactional()
+    @Transactional(propagation = Propagation.SUPPORTS)
     public void delete(Long id) {
-        repository.deleteById(id);
+        if (!repository.existsById(id)) {
+            throw new ResourceNotFoundException("Resource Not Found");
+        }
+        try {
+            repository.deleteById(id);
+        } catch (DataIntegrityViolationException e) {
+            throw new DatabaseException("Data integrity violation");
+        }
     }
 }
