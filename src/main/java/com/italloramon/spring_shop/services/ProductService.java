@@ -3,6 +3,8 @@ package com.italloramon.spring_shop.services;
 import com.italloramon.spring_shop.dto.ProductDTO;
 import com.italloramon.spring_shop.entities.Product;
 import com.italloramon.spring_shop.repositories.ProductRepository;
+import com.italloramon.spring_shop.services.exceptions.ResourceNotFoundException;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,7 +24,7 @@ public class ProductService {
 
     @Transactional(readOnly = true)
     public ProductDTO findById(Long id) {
-        Product product = repository.findById(id).get();
+        Product product = repository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Resource Not Found"));
         return new ProductDTO(product);
     }
 
